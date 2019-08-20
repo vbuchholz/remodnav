@@ -777,7 +777,7 @@ class EyegazeClassifier(object):
             self,
             data,
             min_blink_duration=0.02,
-            dilate_nan=0.01,
+            dilate_nan=0.012,
             median_filter_length=0.05,
             savgol_length=0.019,
             savgol_polyord=2,
