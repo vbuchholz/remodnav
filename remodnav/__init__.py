@@ -64,6 +64,7 @@ help = {
     'velthresh_startvelocity': """start value for adaptive velocity threshold
     algorithm, should be larger than any conceivable minimum saccade velocity
     (in deg/s)""",
+    'plot_creation': """if plots should be created or not (default is 1=True)""",
 }
 
 
@@ -109,13 +110,16 @@ def main(args=sys.argv):
         help="""debug|info|warn|error. 'info' and 'debug' levels enable output
         of increasing levels of detail on the algorithm steps and decision
         making. Default: warn""")
+    parser.add_argument(
+        '--plot-creation', type=int, metavar='<int>', default=0,
+        help="""0 if no plots should be created, 1 if plots should be created""")
 
     for argname, default in sorted(kwargs.items(), key=lambda x: x[0]):
         parser.add_argument(
             '--{}'.format(argname.replace('_', '-')),
             dest=argname,
-            metavar='<float>' if argname != 'savgol-polyord' else '<int>',
-            type=float if argname != 'savgol-polyord' else int,
+            metavar='<float>' if argname != 'savgol-polyord' or argname != 'plot-creation' else '<int>',
+            type=float if argname != 'savgol-polyord' or argname != 'plot-creation' else int,
             default=default,
             help=help[argname] + ' [default: {}]'.format(default))
 
@@ -153,65 +157,66 @@ def main(args=sys.argv):
 
     events2bids_events_tsv(events, args.outfile)
 
-    import matplotlib
-    matplotlib.use('agg')
-    import pylab as pl
+    if args.plot_creation:
+        import matplotlib
+        matplotlib.use('agg')
+        import pylab as pl
+    
+        # one inch per second, or as big as PNG software/browsers can handle
+        duration = float(len(data)) / args.sampling_rate
+        pl.figure(figsize=(min(duration, 400), 3), dpi=100)
+        clf.show_gaze(pp=pp, events=events, show_vels=False)
+        pl.xlim((0, duration))
+        pl.xticks(np.arange(0, duration, step=1))
+        pl.title('Detected eye movement events, parameters: {}'.format(
+            ', '.join([
+                '{}={}'.format(k, getattr(args, k))
+                for k in sorted((
+                    'px2deg', 'sampling_rate', 'velthresh_startvelocity',
+                    'min_intersaccade_duration', 'min_saccade_duration',
+                    'max_initial_saccade_freq', 'saccade_context_window_length',
+                    'max_pso_duration', 'min_fixation_duration',
+                    'min_pursuit_duration', 'pursuit_velthresh',
+                    'min_blink_duration', 'dilate_nan',
+                    'median_filter_length', 'savgol_length', 'savgol_polyord',
+                    'max_vel', 'lowpass_cutoff_freq', 'noise_factor'))
+            ])
+        ))
+        pl.ylabel('coordinates (pixel)')
+        pl.xlabel('time (seconds)')
+        pl.savefig(
+            '{}.png'.format(
+                args.outfile[:-4] if args.outfile.endswith('.tsv')
+                else args.outfile),
+            bbox_inches='tight', format='png', dpi=100)
 
-    # one inch per second, or as big as PNG software/browsers can handle
-    duration = float(len(data)) / args.sampling_rate
-    pl.figure(figsize=(min(duration, 400), 3), dpi=100)
-    clf.show_gaze(pp=pp, events=events, show_vels=False)
-    pl.xlim((0, duration))
-    pl.xticks(np.arange(0, duration, step=1))
-    pl.title('Detected eye movement events, parameters: {}'.format(
-        ', '.join([
-            '{}={}'.format(k, getattr(args, k))
-            for k in sorted((
-                'px2deg', 'sampling_rate', 'velthresh_startvelocity',
-                'min_intersaccade_duration', 'min_saccade_duration',
-                'max_initial_saccade_freq', 'saccade_context_window_length',
-                'max_pso_duration', 'min_fixation_duration',
-                'min_pursuit_duration', 'pursuit_velthresh',
-                'min_blink_duration', 'dilate_nan',
-                'median_filter_length', 'savgol_length', 'savgol_polyord',
-                'max_vel', 'lowpass_cutoff_freq', 'noise_factor'))
-        ])
-    ))
-    pl.ylabel('coordinates (pixel)')
-    pl.xlabel('time (seconds)')
-    pl.savefig(
-        '{}.png'.format(
-            args.outfile[:-4] if args.outfile.endswith('.tsv')
-            else args.outfile),
-        bbox_inches='tight', format='png', dpi=100)
-
-    #import pandas as pd
-    #events = pd.DataFrame(events)
-
-    #saccades = events[events['label'] == 'SACC']
-    #isaccades = events[events['label'] == 'ISAC']
-    #hvpso = events[(events['label'] == 'HPSO') | (events['label'] == 'IHPS')]
-    #lvpso = events[(events['label'] == 'LPSO') | (events['label'] == 'ILPS')]
-
-    #pl.figure(figsize=(6,4))
-    #for ev, sym, color, label in (
-    #        (saccades, '.', 'black', 'saccades'),
-    #        (isaccades, '.', 'xkcd:green teal', '"minor" saccades'),
-    #        (hvpso, '+', 'xkcd:burnt sienna', 'fast PSOs'),
-    #        (lvpso, '+', 'xkcd:azure', 'slow PSOs'))[::-1]:
-    #    pl.loglog(ev['amp'], ev['peak_vel'], sym, color=color,
-    #              alpha=.2, lw=1, label=label)
-
-    #pl.ylim((10.0, args.max_vel))
-    #pl.xlim((0.01, 40.0))
-    #pl.legend(loc=4)
-    #pl.ylabel('peak velocities (deg/s)')
-    #pl.xlabel('amplitude (deg)')
-    #pl.savefig(
-    #    '{}_mainseq.svg'.format(
-    #        args.outfile[:-4] if args.outfile.endswith('.tsv')
-    #        else args.outfile),
-    #    bbox_inches='tight', format='svg')
+        #import pandas as pd
+        #events = pd.DataFrame(events)
+    
+        #saccades = events[events['label'] == 'SACC']
+        #isaccades = events[events['label'] == 'ISAC']
+        #hvpso = events[(events['label'] == 'HPSO') | (events['label'] == 'IHPS')]
+        #lvpso = events[(events['label'] == 'LPSO') | (events['label'] == 'ILPS')]
+    
+        #pl.figure(figsize=(6,4))
+        #for ev, sym, color, label in (
+        #        (saccades, '.', 'black', 'saccades'),
+        #        (isaccades, '.', 'xkcd:green teal', '"minor" saccades'),
+        #        (hvpso, '+', 'xkcd:burnt sienna', 'fast PSOs'),
+        #        (lvpso, '+', 'xkcd:azure', 'slow PSOs'))[::-1]:
+        #    pl.loglog(ev['amp'], ev['peak_vel'], sym, color=color,
+        #              alpha=.2, lw=1, label=label)
+    
+        #pl.ylim((10.0, args.max_vel))
+        #pl.xlim((0.01, 40.0))
+        #pl.legend(loc=4)
+        #pl.ylabel('peak velocities (deg/s)')
+        #pl.xlabel('amplitude (deg)')
+        #pl.savefig(
+        #    '{}_mainseq.svg'.format(
+        #        args.outfile[:-4] if args.outfile.endswith('.tsv')
+        #        else args.outfile),
+        #    bbox_inches='tight', format='svg')
 
 
 if __name__ == '__main__':
