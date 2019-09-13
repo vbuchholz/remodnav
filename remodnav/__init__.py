@@ -164,7 +164,7 @@ def main(args=sys.argv):
     
         # one inch per second, or as big as PNG software/browsers can handle
         duration = float(len(data)) / args.sampling_rate
-        pl.figure(figsize=(min(duration, 400), 3), dpi=100)
+        pl.figure(figsize=(min(duration, 400), 5), dpi=100)
         clf.show_gaze(pp=pp, events=events, show_vels=False)
         pl.xlim((0, duration))
         pl.xticks(np.arange(0, duration, step=1))
