@@ -232,7 +232,7 @@ class EyegazeClassifier(object):
                  saccade_context_window_length=1.0,
                  max_pso_duration=0.04,
                  min_fixation_duration=0.04,
-                 min_pursuit_duration=0.04,
+                 min_pursuit_duration=1.0,
                  lowpass_cutoff_freq=4.0):
             self.px2deg = px2deg
             self.sr = sr = sampling_rate
