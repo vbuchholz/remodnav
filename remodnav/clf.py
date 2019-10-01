@@ -85,9 +85,7 @@ def find_peaks(vels, threshold):
 
 def find_movement_onsetidx(vels, start_idx, sac_onset_velthresh):
     idx = start_idx
-    while idx > 0 \
-            and (vels[idx] > sac_onset_velthresh or
-                 vels[idx] <= vels[idx - 1]):
+    while idx > 0 and vels[idx - 1] > sac_onset_velthresh:
         # find first local minimum after vel drops below onset threshold
         # going backwards in time
 
@@ -102,9 +100,7 @@ def find_movement_offsetidx(vels, start_idx, off_velthresh):
     idx = start_idx
     # shift saccade end index to the first element that is below the
     # velocity threshold
-    while idx < len(vels) - 1 \
-            and (vels[idx] > off_velthresh or
-                 (vels[idx] > vels[idx + 1])):
+    while idx < len(vels) - 2 and vels[idx + 1] > off_velthresh:
             # we used to do this, but it could mean detecting very long
             # saccades that consist of (mostly) missing data
             #    or np.isnan(vels[idx])):
@@ -230,7 +226,7 @@ class EyegazeClassifier(object):
                  min_saccade_duration=0.01,
                  max_initial_saccade_freq=2.0,
                  saccade_context_window_length=1.0,
-                 max_pso_duration=0.04,
+                 max_pso_duration=0.00,
                  min_fixation_duration=0.04,
                  min_pursuit_duration=1.0,
                  lowpass_cutoff_freq=4.0):
